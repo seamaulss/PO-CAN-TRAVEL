@@ -14,7 +14,6 @@ return new class extends Migration
     Schema::table('orders', function (Blueprint $table) {
         $table->unsignedBigInteger('seat_id')->after('bus_id');
 
-        // tambahkan foreign key ke tabel seats
         $table->foreign('seat_id')->references('id')->on('seats')->onDelete('cascade');
     });
 }

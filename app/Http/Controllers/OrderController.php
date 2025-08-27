@@ -13,9 +13,9 @@ class OrderController extends Controller
     public function getSeats($busId)
 {
     return Seat::where('bus_id', $busId)
-        ->where('is_booked', 0)
-        ->get(['id', 'seat_number']);
+        ->get(['id', 'seat_number', 'is_booked']);
 }
+
 
     public function create()
 {
@@ -37,31 +37,34 @@ class OrderController extends Controller
     {
         $order = Order::with(['bus', 'seat'])->findOrFail($id);
 
-        // hanya boleh download invoice kalau status sudah paid
         if ($order->status !== 'paid') {
             return redirect()->back()->with('error', 'Invoice hanya bisa diunduh setelah pembayaran.');
         }
 
-        $pdf = Pdf::loadView('orders.invoice', compact('order')) // ✅ ubah ke 'orders.invoice'
+        $pdf = Pdf::loadView('orders.invoice', compact('order'))
                   ->setPaper('a4', 'portrait');
 
         return $pdf->download('Invoice-Order-' . $order->id . '.pdf');
     }
 
-    public function pay(Order $order)
-    {
-        // pastikan order milik user yang login
-        if ($order->user_id !== auth()->id()) {
-            return redirect()->route('orders.history')->with('error', 'Tidak boleh membayar pesanan orang lain!');
-        }
-
-        // update status jadi paid
-        $order->update([
-            'status' => 'paid'
-        ]);
-
-        return redirect()->route('orders.history')->with('success', 'Pembayaran berhasil, tiket Anda sudah aktif!');
+    public function pay(Order $order, Request $request)
+{
+    if ($order->user_id !== auth()->id()) {
+        return redirect()->route('orders.history')->with('error', 'Tidak boleh membayar pesanan orang lain!');
     }
+
+    $request->validate([
+        'payment_method' => 'required|in:cash,transfer,ewallet'
+    ]);
+
+    $order->update([
+        'status' => 'paid',
+        'payment_method' => $request->payment_method
+    ]);
+
+    return redirect()->route('orders.history')->with('success', 'Pembayaran berhasil, tiket Anda sudah aktif!');
+}
+
 
     public function history()
     {
@@ -80,19 +83,17 @@ class OrderController extends Controller
         'seat_id' => 'required|exists:seats,id',
     ]);
 
-    // Ambil harga bus
     $bus = Bus::findOrFail($request->bus_id);
-    $price = $bus->price; // pastikan field harga di tabel buses namanya 'price'
+    $price = $bus->price;
 
     $order = Order::create([
         'bus_id'      => $request->bus_id,
         'seat_id'     => $request->seat_id,
         'user_id'     => auth()->id(),
         'status'      => 'Dipesan',
-        'total_price' => $price, // ⬅️ wajib diisi
+        'total_price' => $price,
     ]);
 
-    // update kursi jadi terpesan
     Seat::where('id', $request->seat_id)->update(['is_booked' => 1]);
 
     return redirect()->route('orders.index')->with('success', 'Tiket berhasil dipesan!');

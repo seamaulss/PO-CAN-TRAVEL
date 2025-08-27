@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/bus/{id}/seats', function($id) {
     return Seat::where('bus_id', $id)
-        ->where('is_booked', 0)   // hanya ambil kursi kosong
+        ->where('is_booked', 0)   
         ->get(['id', 'seat_number']);
 });
 

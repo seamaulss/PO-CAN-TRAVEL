@@ -33,7 +33,6 @@
                             {{ ucfirst($order->status) }}
                         </span>
 
-                        {{-- ✅ Tombol Bayar kalau pending --}}
                         @if($order->status == 'pending')
                             <form action="{{ route('orders.pay', $order->id) }}" method="POST" class="inline">
                                 @csrf
@@ -43,7 +42,6 @@
                             </form>
                         @endif
 
-                        {{-- ✅ Tombol Download Invoice kalau sudah paid --}}
                         @if($order->status == 'paid')
                             <a href="{{ route('orders.invoice', $order->id) }}" 
                                class="ml-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
